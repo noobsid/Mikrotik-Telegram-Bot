@@ -2,22 +2,20 @@ import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters, CallbackQueryHandler
 from librouteros import connect
-from librouteros.exceptions import TrapError, ResourceNotFoundError, ConnectionError as LibroConnectionError
 
 # =======================
-# Konfigurasi (ubah sesuai kebutuhan)
+# Konfigurasi
 # =======================
-BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+BOT_TOKEN = "YOUR_BOT_TOKEN"
 
-# Boleh tulis "192.168.42.10" atau "192.168.42.10:1001"
+# Ubah sesuai permintaan: host dan port terpisah default port : 8729
 MIKROTIK_IP = "IP"
+MIKROTIK_PORT = PORT
+
 MIKROTIK_USER = "USER"
-MIKROTIK_PASS = "PASS"
+MIKROTIK_PASS = "PASSWORD"
 
-# Port default API Mikrotik (8728) jika tidak di-override lewat MIKROTIK_IP
-MIKROTIK_DEFAULT_PORT = 8728
-
-ALLOWED_CHAT_IDS = [ADMIN_CHATID]   # chat_id admin
+ALLOWED_CHAT_IDS = [ADMIN_ID]   # chat_id admin
 
 profiles = {
     "2r": {"prefix": "2R", "profile": "2Rb-10Jam", "harga": "Rp2.000"},
@@ -43,103 +41,46 @@ def random_string(length=6):
 def is_authorized(chat_id):
     return chat_id in ALLOWED_CHAT_IDS
 
-def parse_host_port(hostport: str):
-    """
-    Terima string seperti:
-      - 192.168.42.10
-      - 192.168.42.10:1001
-      - [2001:db8::1]:1001  (opsional, belum dioptimalkan)
-    Kembalikan tuple (host, port:int).
-    """
-    if not hostport:
-        raise ValueError("host/port kosong")
-
-    # Jika ada ':' kemungkinan ada port. Gunakan rsplit untuk menghindari masalah pada IPv6 (sederhana).
-    if ':' in hostport and hostport.count(':') == 1:
-        host, port_str = hostport.rsplit(':', 1)
-        try:
-            port = int(port_str)
-        except ValueError:
-            raise ValueError(f"Port tidak valid: {port_str}")
-        return host, port
-    # Jika ada banyak ':', kemungkinan IPv6 tanpa port — kita tidak mendukung IPv6 kompleks di sini.
-    if hostport.startswith('[') and ']:' in hostport:
-        # format [ipv6]:port
-        closing = hostport.find(']')
-        host = hostport[1:closing]
-        port_str = hostport[closing+2:]
-        try:
-            port = int(port_str)
-        except ValueError:
-            raise ValueError(f"Port tidak valid: {port_str}")
-        return host, port
-
-    # default: tidak ada port
-    return hostport, MIKROTIK_DEFAULT_PORT
-
-def connect_api():
-    """
-    Membuat koneksi ke Mikrotik berdasarkan MIKROTIK_IP (bisa berformat ip:port).
-    Mengembalikan objek API (harus di-close oleh pemanggil).
-    """
-    host, port = parse_host_port(MIKROTIK_IP)
-    try:
-        api = connect(username=MIKROTIK_USER, password=MIKROTIK_PASS, host=host, port=port)
-        return api
-    except Exception as e:
-        # Bungkus exception supaya pemanggil bisa menampilkannya
-        raise ConnectionError(f"Gagal koneksi ke {host}:{port} — {e}")
-
 def make_voucher(code, jumlah):
-    """Buat voucher di Mikrotik dan kembalikan list baris teks hasilnya"""
+    """Buat voucher di Mikrotik dan kembalikan teks hasilnya"""
     if code not in profiles:
         return ["❌ Kode tidak dikenal!"]
-
-    try:
-        jumlah_int = int(jumlah)
-        if jumlah_int <= 0:
-            return ["❌ Jumlah harus > 0"]
-    except ValueError:
-        return ["❌ Jumlah harus berupa angka"]
 
     prefix = profiles[code]["prefix"]
     profile = profiles[code]["profile"]
 
-    api = None
-    vouchers = []
+    # koneksi sekarang pakai host dan port terpisah
     try:
-        api = connect_api()
-        users = api.path("ip", "hotspot", "user")
-
-        for _ in range(jumlah_int):
-            uname = f"{prefix}{random_string(6)}"
-            pwd = uname
-            try:
-                users.add(name=uname, password=pwd, profile=profile, comment="vc-Telegram")
-                vouchers.append(
-                    f"✅ Kode Vocer:\n"
-                    f"🔐 {uname}\n"
-                    f"📦 {profile}\n"
-                    f"💰 {profiles[code]['harga']}\n"
-                )
-            except TrapError as te:
-                vouchers.append(f"⚠️ Gagal buat {uname}: TrapError: {te}")
-            except Exception as e:
-                vouchers.append(f"⚠️ Gagal buat {uname}: {e}")
-
-    except ConnectionError as ce:
-        return [f"⚠️ {ce}"]
+        api = connect(username=MIKROTIK_USER, password=MIKROTIK_PASS,
+                      host=MIKROTIK_IP, port=MIKROTIK_PORT)
     except Exception as e:
-        return [f"⚠️ Error tak terduga: {e}"]
-    finally:
-        # Tutup koneksi bila ada
+        return [f"⚠️ Gagal koneksi ke Mikrotik {MIKROTIK_IP}:{MIKROTIK_PORT} — {e}"]
+
+    users = api.path("ip", "hotspot", "user")
+
+    vouchers = []
+    for _ in range(int(jumlah)):
+        uname = f"{prefix}{random_string(6)}"
+        pwd = uname
         try:
-            if api is not None:
-                api.close()
-        except Exception:
-            pass
+            users.add(name=uname, password=pwd, profile=profile, comment="vc-Telegram")
+            vouchers.append(
+                f"✅ Kode Vocer:\n"
+                f"🔐 {uname}\n"
+                f"📦 {profile}\n"
+                f"💰 {profiles[code]['harga']}\n"
+            )
+        except Exception as e:
+            vouchers.append(f"⚠️ Gagal buat {uname}: {e}")
+
+    # tutup koneksi kalau tersedia
+    try:
+        api.close()
+    except Exception:
+        pass
 
     return ["Berhasil ✅\n"] + vouchers
+
 
 # =======================
 # Menu Builder
@@ -152,6 +93,7 @@ def main_menu():
     ]
     return InlineKeyboardMarkup(keyboard)
 
+
 # =======================
 # Handler Telegram
 # =======================
@@ -160,6 +102,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Anda tidak diizinkan.")
         return
     await update.message.reply_text("✅ Bot aktif!\n\nPilih menu:", reply_markup=main_menu())
+
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -195,7 +138,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Submenu profile
     elif data.startswith("profile_"):
-        kode = data.split("_", 1)[1]
+        kode = data.split("_")[1]
         keyboard = [[InlineKeyboardButton(str(i), callback_data=f"generate_{kode}_{i}")] for i in range(1, 5)]
         keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="menu_generate")])
         await query.edit_message_text(
@@ -205,7 +148,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Generate voucher
     elif data.startswith("generate_"):
-        _, kode, jumlah = data.split("_", 2)
+        _, kode, jumlah = data.split("_")
         vouchers = make_voucher(kode, jumlah)
         keyboard = [[InlineKeyboardButton("⬅️ Back", callback_data="menu_generate")]]
         await query.edit_message_text("\n".join(vouchers), reply_markup=InlineKeyboardMarkup(keyboard))
@@ -213,6 +156,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Back button
     elif data == "back_main":
         await query.edit_message_text("✅ Bot aktif!\n\nPilih menu:", reply_markup=main_menu())
+
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle input manual <kode> <jumlah>"""
@@ -233,6 +177,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         await update.message.reply_text(f"⚠️ Error: {e}")
+
 
 # =======================
 # Main
