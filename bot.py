@@ -6,16 +6,16 @@ from librouteros import connect
 # =======================
 # Konfigurasi
 # =======================
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+BOT_TOKEN = "YOUR BOT TOKEN"
 
-# Ubah sesuai permintaan: host dan port terpisah default port : 8729
-MIKROTIK_IP = "IP"
-MIKROTIK_PORT = PORT
+# Ubah sesuai permintaan: host dan port terpisah default port : 8728
+MIKROTIK_IP = "YOUR MIKROTIK IP"
+MIKROTIK_PORT = Your-Port
 
 MIKROTIK_USER = "USER"
-MIKROTIK_PASS = "PASSWORD"
+MIKROTIK_PASS = "PASS"
 
-ALLOWED_CHAT_IDS = [ADMIN_ID]   # chat_id admin
+ALLOWED_CHAT_IDS = [YOUR-ID-CHAT]   # chat_id admin
 
 profiles = {
     "2r": {"prefix": "2R", "profile": "2Rb-10Jam", "harga": "Rp2.000"},
@@ -27,6 +27,8 @@ profiles = {
     "2b": {"prefix": "30D", "profile": "1Bulan-2Hp", "harga": "Rp80.000"},
     "3b": {"prefix": "30D", "profile": "1Bulan-3Hp", "harga": "Rp120.000"},
     "4b": {"prefix": "30D", "profile": "1Bulan-4HP-150", "harga": "Rp150.000"},
+    "1B-IP": {"prefix": "30D", "profile": "1-BULAN-IP", "harga": "Rp50.000"},
+    "7D-IP": {"prefix": "7D", "profile": "7Hari-Iphone", "harga": "Rp25.000"},
     "t1": {"prefix": "TE", "profile": "TEST", "harga": "Rp0"},
 }
 
