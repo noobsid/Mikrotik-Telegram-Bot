@@ -18,12 +18,13 @@ MIKROTIK_PASS = "PASS"
 ALLOWED_CHAT_IDS = [YOUR-ID-CHAT]   # chat_id admin
 
 profiles = {
-    "2r": {"prefix": "2R", "profile": "2Rb-10Jam", "harga": "Rp2.000"},
-    "3r": {"prefix": "3R", "profile": "3Rb-17Jam", "harga": "Rp3.000"},
-    "4r": {"prefix": "4R", "profile": "4Rb-24Jam", "harga": "Rp4.000"},
-    "8r": {"prefix": "8R", "profile": "8Rb-2Hari5Jam", "harga": "Rp8.000"},
+    "2r": {"prefix": "2R", "profile": "2K-7Jam", "harga": "Rp2.000"},
+    "3r": {"prefix": "3R", "profile": "3K-12Jam", "harga": "Rp3.000"},
+    "4r": {"prefix": "4R", "profile": "4K-20Jam", "harga": "Rp4.000"},
+    "8r": {"prefix": "8R", "profile": "8K-41Jam", "harga": "Rp8.000"},
     "7h": {"prefix": "7D", "profile": "7Hari-25Rb", "harga": "Rp25.000"},
     "1b": {"prefix": "30D", "profile": "1-BULAN", "harga": "Rp50.000"},
+    "1B-S": {"prefix": "30D", "profile": "1Bulan-Stream", "harga": "Rp5.000"},
     "2b": {"prefix": "30D", "profile": "1Bulan-2Hp", "harga": "Rp80.000"},
     "3b": {"prefix": "30D", "profile": "1Bulan-3Hp", "harga": "Rp120.000"},
     "4b": {"prefix": "30D", "profile": "1Bulan-4HP-150", "harga": "Rp150.000"},
